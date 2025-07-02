@@ -11,10 +11,8 @@ adminrouter.post("/login", async (req, res) => {
 
   if (username !== adminUsername) return res.status(401).json({ msg: "Invalid Email" });
 
-  const isMatch = await bcrypt.compare(password, await bcrypt.hash(adminPassword, 10));
-  if (!isMatch) return res.status(401).json({ msg: "Invalid Password" });
+  if (password !== adminPassword) return res.status(401).json({ msg: "Invalid Password" });
 
   res.json({ success: true });
 });
-
 module.exports = adminrouter;
