@@ -15,4 +15,5 @@ const FooterSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('Footer', FooterSchema);
+const Footer = mongoose.model('Footer', FooterSchema);
+module.exports= Footer
