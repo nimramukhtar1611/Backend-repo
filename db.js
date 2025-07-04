@@ -13,9 +13,9 @@ const connectToMongo = async () => {
     }
     try {
         await mongoose.connect(URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
         console.log("Connected to Mongo Successfully");
     } catch (error) {
         console.error("Failed to connect to Mongo:", error);
