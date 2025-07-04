@@ -14,18 +14,18 @@ const productRouter = require('./routes/productRoutes');
 const contactrouter = require('./routes/contactRoutes');
 app.use(express.json());
 app.use(fileupload({ useTempFiles: true }));
-app.use(cors({ origin: true }));
+app.use(cors());
 connectToMongo()
   .then(() => {
     console.log('✅ MongoDB connected, starting server...');
    app.use("/api/auth", adminrouter);
-   app.use('/api/footer', require('./routes/footerRoutes'));
+   app.use('/api/footer', footerrouter);
    app.use('/api', metaRoutes);
    app.use("/api/dishes", dishrouter);
    app.use("/api/removedishes", dishviewrouter);
+   app.use("/api/products", productRouter);
    app.use("/api/removeproduct", Productviewrouter);
    app.use("/api/contact", contactrouter);
-   app.use("/api/products", productRouter);
    
    app.get('/api/auth/admininfo', fetchAdmin, (req, res) => {
      res.json({ msg: "This is protected admin info.", adminId: req.user });
