@@ -2,56 +2,80 @@ const express = require("express");
 const dishrouter = express.Router();
 const Category = require("../models/Category");
 const { upload, cloudinary } = require("../config/cloudinaryUpload");
+const multiUpload = upload.array("images", 10); // allow up to 10 images
+
+// Get all categories
 dishrouter.get("/", async (req, res) => {
   try {
     const categories = await Category.find();
     res.json(categories);
   } catch (error) {
+    console.error("Fetch error:", error);
     res.status(500).json({ error: "Failed to fetch categories" });
   }
 });
-dishrouter.post("/", upload.single("image"), async (req, res) => {
+
+// Add new category
+dishrouter.post("/", multiUpload, async (req, res) => {
   try {
-    const file = req.file;
-    const { title, desc, price, image } = req.body;
+    const files = req.files;
+    const { title, desc, price } = req.body;
 
-    if ((!file && !image) || !title || !desc || !price) {
-      return res.status(400).json({ error: "All fields are required" });
+    let imageUrls = req.body.imageUrls || [];
+    if (typeof imageUrls === "string") {
+      imageUrls = [imageUrls];
     }
 
-    let imageUrl = "";
-
-    if (file) {
-      const result = await new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          { folder: "category" },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-        uploadStream.end(file.buffer);
-      });
-      imageUrl = result.secure_url;
-    } else {
-      imageUrl = image; // direct URL from frontend
+    if ((!files || files.length === 0) && imageUrls.length === 0) {
+      return res.status(400).json({ error: "At least one image required" });
     }
+
+    const uploadedImages = [];
+
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const uploadResult = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: "category",
+              resource_type: "image",
+            },
+            (error, result) => {
+              if (error) {
+                console.error("Cloudinary upload error:", error);
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          );
+          stream.end(file.buffer);
+        });
+
+        if (uploadResult?.secure_url) {
+          uploadedImages.push(uploadResult.secure_url);
+        }
+      }
+    }
+
+    uploadedImages.push(...imageUrls);
 
     const newCategory = new Category({
       title,
       desc,
       price,
-      image: imageUrl,
+      images: uploadedImages,
     });
 
     await newCategory.save();
     res.status(201).json({ message: "Category added successfully" });
-
   } catch (error) {
-    console.error("Upload Error:", error);
-    res.status(500).json({ error: "Failed to add category" });
+    console.error("Upload Error Stack:", error.stack);
+    res.status(500).json({
+      error: "Failed to add category",
+      details: error.message,
+    });
   }
 });
-
 
 module.exports = dishrouter;

@@ -2,55 +2,80 @@ const express = require("express");
 const Product = require("../models/Product");
 const { upload, cloudinary } = require("../config/cloudinaryUpload");
 const productRouter = express.Router();
-productRouter.post("/", upload.single("image"), async (req, res) => {
+const multiUpload = upload.array("images", 10); // Support up to 10 uploads
+
+// Create new product
+productRouter.post("/", multiUpload, async (req, res) => {
   try {
-    const file = req.file;
-    const { title, desc, category, image } = req.body;
+    const files = req.files;
+    const { title, desc, category, price } = req.body;
 
-    if ((!file && !image) || !title || !desc || !category) {
-      return res.status(400).json({ error: "All fields are required" });
+    let imageUrls = req.body.imageUrls || [];
+    if (typeof imageUrls === "string") {
+      imageUrls = [imageUrls];
     }
 
-    let imageUrl = "";
+    if ((!files || files.length === 0) && imageUrls.length === 0) {
+      return res.status(400).json({ error: "At least one image is required" });
+    }
 
-    if (file) {
-      const result = await new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          { folder: "product" },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
+    const uploadedImages = [];
+
+    // Upload desktop-uploaded images
+    if (files && files.length > 0) {
+      for (const file of files) {
+        try {
+          const uploadResult = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+              { folder: "products", resource_type: "image" },
+              (error, result) => {
+                if (error) {
+                  console.error("Cloudinary Upload Error:", error);
+                  reject(error);
+                } else {
+                  resolve(result);
+                }
+              }
+            ).end(file.buffer);
+          });
+
+          if (uploadResult?.secure_url) {
+            uploadedImages.push(uploadResult.secure_url);
           }
-        );
-        uploadStream.end(file.buffer);
-      });
-      imageUrl = result.secure_url;
-    } else {
-      imageUrl = image; 
+        } catch (err) {
+          // Log which file failed
+          console.error("Error uploading file:", file.originalname, err);
+          return res.status(500).json({ error: "Failed to upload one or more images" });
+        }
+      }
     }
+
+    // Merge with URL-based images
+    uploadedImages.push(...imageUrls);
 
     const newProduct = new Product({
       title,
       desc,
-      image: imageUrl,
+      price,
       category,
+      images: uploadedImages,
     });
 
     await newProduct.save();
     res.status(201).json({ message: "Product added successfully" });
 
   } catch (err) {
-    console.error("Error creating product:", err);
+    console.error("Server Error in /products:", err);
     res.status(500).json({ error: "Server error while creating product" });
   }
 });
+
+
 productRouter.get("/", async (req, res) => {
   try {
     const products = await Product.find().populate("category");
     res.json(products);
   } catch (err) {
-       console.error( err);
-
     res.status(500).json({ error: "Server error while fetching products" });
   }
 });

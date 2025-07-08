@@ -13,7 +13,6 @@ const dishviewrouter = require('./routes/dishviewRoutes');
 const productRouter = require('./routes/productRoutes');
 const contactrouter = require('./routes/contactRoutes');
 app.use(express.json());
-app.use(fileupload({ useTempFiles: true }));
 app.use(cors());
 connectToMongo()
   .then(() => {
@@ -21,8 +20,8 @@ connectToMongo()
    app.use("/api/auth", adminrouter);
    app.use('/api/footer', footerrouter);
    app.use('/api', metaRoutes);
-   app.use("/api/dishes", dishrouter);
-   app.use("/api/removedishes", dishviewrouter);
+app.use("/api/dishes", dishrouter);      
+  app.use("/api/removedishes", dishviewrouter);
    app.use("/api/products", productRouter);
    app.use("/api/removeproduct", Productviewrouter);
    app.use("/api/contact", contactrouter);
