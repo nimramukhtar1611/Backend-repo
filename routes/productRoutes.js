@@ -10,10 +10,14 @@ productRouter.post("/", multiUpload, async (req, res) => {
     const files = req.files;
     const { title, desc, category, price } = req.body;
 
-    let imageUrls = req.body.imageUrls || [];
-    if (typeof imageUrls === "string") {
-      imageUrls = [imageUrls];
-    }
+ let imageUrls = [];
+
+if (Array.isArray(req.body.imageUrls)) {
+  imageUrls = req.body.imageUrls;
+} else if (typeof req.body.imageUrls === "string") {
+  imageUrls = [req.body.imageUrls];
+}
+
 
     if ((!files || files.length === 0) && imageUrls.length === 0) {
       return res.status(400).json({ error: "At least one image is required" });

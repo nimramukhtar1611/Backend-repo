@@ -15,35 +15,43 @@ dishviewrouter.get("/", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch categories" });
   }
 });
-
 // UPDATE category
 dishviewrouter.put("/:id", multiUpload, async (req, res) => {
   try {
     const { title, desc, price } = req.body;
-    const existingImages = req.body.existingImages || [];
-    const newImageUrls = req.body.imageUrls || [];
-    let finalImages = [];
 
-    // Add existing images
-    if (typeof existingImages === "string") {
-      finalImages.push(existingImages);
-    } else {
-      finalImages = [...existingImages];
-    }
+    const existingImages = Array.isArray(req.body.existingImages)
+      ? req.body.existingImages
+      : req.body.existingImages ? [req.body.existingImages] : [];
 
-    // Add new image URLs
-    if (typeof newImageUrls === "string") {
-      finalImages.push(newImageUrls);
-    } else {
-      finalImages.push(...newImageUrls);
-    }
+    const newImageUrls = Array.isArray(req.body.imageUrls)
+      ? req.body.imageUrls
+      : req.body.imageUrls ? [req.body.imageUrls] : [];
 
-    // Upload new files to Cloudinary
+    // Initialize finalImages with both existing and new URLs
+    let finalImages = [...existingImages, ...newImageUrls];
+
+    // streamUpload helper
+    const streamUpload = (fileBuffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: "image" },
+          (error, result) => {
+            if (result) resolve(result);
+            else reject(error);
+          }
+        );
+        stream.end(fileBuffer);
+      });
+    };
+
+    // Upload any desktop-uploaded files (req.files) to Cloudinary
     for (const file of req.files) {
-      const result = await cloudinary.uploader.upload(file.path);
+      const result = await streamUpload(file.buffer);
       finalImages.push(result.secure_url);
     }
 
+    // Update category in DB
     const updatedCategory = await Category.findByIdAndUpdate(
       req.params.id,
       {
