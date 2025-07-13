@@ -15,6 +15,7 @@ const productRouter = require('./routes/productRoutes');
 const contactrouter = require('./routes/contactRoutes');
 app.use(express.json());
 app.use(cors());
+require('dotenv').config(); 
 connectToMongo()
   .then(() => {
     console.log('✅ MongoDB connected, starting server...');
@@ -27,7 +28,6 @@ app.use("/api/dishes", dishrouter);
    app.use("/api/removeproduct", Productviewrouter);
    app.use("/api/contact", contactrouter);
    app.use("/api/home", homerouter);
-
    app.get('/api/auth/admininfo', fetchAdmin, (req, res) => {
      res.json({ msg: "This is protected admin info.", adminId: req.user });
    });

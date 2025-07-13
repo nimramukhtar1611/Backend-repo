@@ -14,45 +14,52 @@ homerouter.get("/", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch home settings" });
   }
 });
-
 // Update/Add Carousel Images
 homerouter.post("/", multiUpload, async (req, res) => {
   try {
     let { imageUrls } = req.body;
     const files = req.files;
 
-    // Normalize imageUrls
     if (typeof imageUrls === "string") {
       imageUrls = [imageUrls];
     }
 
-    const uploaded = [];
+    let uploaded = [];
 
-    if (files && files.length > 0) {
-      for (const file of files) {
-        const uploadedImage = await new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { folder: "carousel" },
-            (err, result) => {
-              if (err) return reject(err);
-              resolve(result.secure_url);
-            }
-          );
-          stream.end(file.buffer);
-        });
-
-        uploaded.push(uploadedImage);
-      }
+    if (files?.length > 0) {
+      uploaded = await Promise.all(
+        files.map(
+          (file) =>
+            new Promise((resolve, reject) => {
+              const stream = cloudinary.uploader.upload_stream(
+                { folder: "carousel" },
+                (err, result) => {
+                  if (err) return reject(err);
+                  resolve(result.secure_url);
+                }
+              );
+              stream.end(file.buffer);
+            })
+        )
+      );
     }
 
-    const allImages = [...(imageUrls || []), ...uploaded];
-
     let settings = await HomeSettings.findOne();
+
     if (settings) {
-      settings.carouselImages = allImages;
+      // Append both URL and uploaded files
+      if (imageUrls?.length > 0) {
+        settings.carouselImages.push(...imageUrls);
+      }
+      if (uploaded.length > 0) {
+        settings.carouselImages.push(...uploaded);
+      }
+
       await settings.save();
     } else {
-      settings = await HomeSettings.create({ carouselImages: allImages });
+      settings = await HomeSettings.create({
+        carouselImages: [...(imageUrls || []), ...uploaded],
+      });
     }
 
     res.json({ message: "Carousel updated successfully", data: settings });
@@ -62,6 +69,24 @@ homerouter.post("/", multiUpload, async (req, res) => {
       error: "Failed to update carousel",
       details: err.message || err,
     });
+  }
+});
+
+
+// DELETE an image from carousel
+homerouter.put("/delete-image", async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+
+    const settings = await HomeSettings.findOne();
+    if (!settings) return res.status(404).json({ error: "HomeSettings not found" });
+
+    settings.carouselImages = settings.carouselImages.filter((url) => url !== imageUrl);
+    await settings.save();
+
+    res.json({ message: "Image deleted", data: settings.carouselImages });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete image", details: err.message });
   }
 });
 
