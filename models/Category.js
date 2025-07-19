@@ -6,6 +6,8 @@ const categorySchema = new mongoose.Schema({
   desc: { type: String, required: true },
   price: { type: String, required: true },
   images: [{ type: String, required: true }],
+  metaTitle: String,
+  metaDescription: String
 });
 
 const Category = mongoose.model("Category", categorySchema);

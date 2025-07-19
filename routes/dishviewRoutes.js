@@ -3,9 +3,7 @@ const dishviewrouter = express.Router();
 const Category = require("../models/Category");
 const { upload, cloudinary } = require("../config/cloudinaryUpload");
 
-const multiUpload = upload.array("images", 5); // Upload up to 5 files
-
-// GET all categories
+const multiUpload = upload.array("images", 5);
 dishviewrouter.get("/", async (req, res) => {
   try {
     const dishes = await Category.find();
@@ -15,10 +13,10 @@ dishviewrouter.get("/", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch categories" });
   }
 });
-// UPDATE category
 dishviewrouter.put("/:id", multiUpload, async (req, res) => {
   try {
-    const { title, desc, price } = req.body;
+    const { title, desc, price, metaTitle,
+       metaDescription, } = req.body;
 
     const existingImages = Array.isArray(req.body.existingImages)
       ? req.body.existingImages
@@ -58,6 +56,8 @@ dishviewrouter.put("/:id", multiUpload, async (req, res) => {
         title,
         desc,
         price,
+         metaTitle,
+       metaDescription,
         images: finalImages,
       },
       { new: true }
@@ -70,7 +70,6 @@ dishviewrouter.put("/:id", multiUpload, async (req, res) => {
   }
 });
 
-// DELETE category
 dishviewrouter.delete("/:id", async (req, res) => {
   try {
     await Category.findByIdAndDelete(req.params.id);

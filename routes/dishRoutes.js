@@ -19,7 +19,7 @@ dishrouter.get("/", async (req, res) => {
 dishrouter.post("/", multiUpload, async (req, res) => {
   try {
     const files = req.files;
-    const { title, desc, price } = req.body;
+    const { title, desc, price,metaTitle, metaDescription } = req.body;
 
     let imageUrls = req.body.imageUrls || [];
     if (typeof imageUrls === "string") {
@@ -64,6 +64,8 @@ dishrouter.post("/", multiUpload, async (req, res) => {
       title,
       desc,
       price,
+      metaTitle,
+       metaDescription,
       images: uploadedImages,
     });
 

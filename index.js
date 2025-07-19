@@ -7,6 +7,7 @@ const connectToMongo = require('./db');
 const adminrouter = require('./routes/auth');
 const homerouter = require ('./routes/homeRoutes')
 const footerrouter = require('./routes/footerRoutes');
+const orderrouter = require ('./routes/orderRoutes')
 const metaRoutes = require('./routes/metaRoutes');
 const dishrouter = require('./routes/dishRoutes');
 const Productviewrouter = require('./routes/productviewRoutes');
@@ -27,6 +28,7 @@ app.use("/api/dishes", dishrouter);
    app.use("/api/products", productRouter);
    app.use("/api/removeproduct", Productviewrouter);
    app.use("/api/contact", contactrouter);
+   app.use('/api/order', orderrouter);
    app.use("/api/home", homerouter);
    app.get('/api/auth/admininfo', fetchAdmin, (req, res) => {
      res.json({ msg: "This is protected admin info.", adminId: req.user });
